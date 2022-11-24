@@ -50,7 +50,7 @@ class bound_t final {
     static bound_t minus_infinity() { return bound_t(true, -1); }
 
   public:
-    bound_t(int n) : _is_infinite(false), _n(n) {}
+    bound_t(int64_t n) : _is_infinite(false), _n(n) {}
 
     explicit bound_t(const std::string& s) : _n(1) {
         if (s == "+oo") {
@@ -145,8 +145,8 @@ class bound_t final {
         if (x._n == 0) {
             CRAB_ERROR("Bound: division by zero");
         } else if (is_finite() && x.is_finite()) {
-            number_t dividend = (_n >= 0) ? _n : number_t((unsigned long long)_n.cast_to_uint64_t());
-            number_t divisor = (x._n >= 0) ? x._n : number_t((unsigned long long)x._n.cast_to_uint64_t());
+            number_t dividend = (_n >= 0) ? _n : number_t((unsigned long long)_n.cast_to_uint64());
+            number_t divisor = (x._n >= 0) ? x._n : number_t((unsigned long long)x._n.cast_to_uint64());
             return bound_t(false, dividend / divisor);
         } else if (is_finite() && x.is_infinite()) {
             return 0;
@@ -159,8 +159,8 @@ class bound_t final {
         if (x._n == 0) {
             CRAB_ERROR("Bound: modulo zero");
         } else if (is_finite() && x.is_finite()) {
-            number_t dividend = (_n >= 0) ? _n : number_t((unsigned long long)_n.cast_to_uint64_t());
-            number_t divisor = (x._n >= 0) ? x._n : number_t((unsigned long long)x._n.cast_to_uint64_t());
+            number_t dividend = (_n >= 0) ? _n : number_t((unsigned long long)_n.cast_to_uint64());
+            number_t divisor = (x._n >= 0) ? x._n : number_t((unsigned long long)x._n.cast_to_uint64());
             return bound_t(false, dividend % divisor);
         } else if (is_finite() && x.is_infinite()) {
             return *this;

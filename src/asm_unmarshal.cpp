@@ -133,7 +133,8 @@ struct Unmarshaller {
         } else {
             if (inst.src != 0)
                 throw InvalidInstruction{pc, "nonzero src for register alu op"};
-            return Imm{(uint32_t)inst.imm};
+            // Imm is a signed 32-bit number.  Sign extend it to 64-bits for storage.
+            return Imm{(uint64_t)(int64_t)(int32_t)inst.imm};
         }
     }
 
@@ -215,6 +216,8 @@ struct Unmarshaller {
                 ((inst.opcode & INST_SIZE_MASK) != INST_SIZE_W &&
                  (inst.opcode & INST_SIZE_MASK) != INST_SIZE_DW))
                 throw InvalidInstruction(pc, "Bad instruction");
+            if (inst.imm != 0)
+                throw InvalidInstruction(pc, "Unsupported atomic instruction");
             return LockAdd{
                 .access =
                     Deref{
@@ -233,7 +236,7 @@ struct Unmarshaller {
     auto makeAluOp(size_t pc, ebpf_inst inst) -> Instruction {
         if (inst.dst == R10_STACK_POINTER)
             throw InvalidInstruction(pc, "Invalid target r10");
-        return std::visit(overloaded{[&](Un::Op op) -> Instruction { return Un{.op = op, .dst = Reg{inst.dst}}; },
+        return std::visit(overloaded{[&](Un::Op op) -> Instruction { return Un{.op = op, .dst = Reg{inst.dst}, .is64 = (inst.opcode & INST_CLS_MASK) == INST_CLS_ALU64}; },
                                      [&](Bin::Op op) -> Instruction {
                                          Bin res{
                                              .op = op,
@@ -359,8 +362,6 @@ struct Unmarshaller {
             if ((inst.opcode & INST_CLS_MASK) != INST_CLS_JMP)
                 throw InvalidInstruction(pc, "Bad instruction");
         default: {
-            if ((inst.opcode & INST_CLS_MASK) != INST_CLS_JMP)
-                throw InvalidInstruction(pc, "JMP32 is not yet supported");
             pc_t new_pc = pc + 1 + inst.offset;
             if (new_pc >= insts.size())
                 throw InvalidInstruction(pc, "jump out of bounds");
@@ -373,6 +374,7 @@ struct Unmarshaller {
                                                         .left = Reg{inst.dst},
                                                         .right = (inst.opcode & INST_SRC_REG) ? (Value)Reg{inst.src}
                                                                                               : Imm{(uint32_t)inst.imm},
+                                                        .is64 = ((inst.opcode & INST_CLS_MASK) == INST_CLS_JMP)
                                                     };
             return Jmp{
                 .cond = cond,

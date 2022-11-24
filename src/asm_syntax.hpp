@@ -108,6 +108,7 @@ struct Un {
 
     Op op;
     Reg dst;
+    bool is64{};
 };
 
 /// This instruction is encoded similarly to LDDW.
@@ -136,6 +137,7 @@ struct Condition {
     Op op;
     Reg left;
     Value right;
+    bool is64{};
 };
 
 struct Jmp {
